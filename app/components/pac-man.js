@@ -1,6 +1,7 @@
 import Component from '@ember/component';
+import KeyboardShortCuts from 'ember-keyboard-shortcuts/mixins/component';
 
-export default Component.extend({
+export default Component.extend(KeyboardShortCuts, {
     didInsertElement: function(){
         this.drawCircle();
     },
@@ -16,7 +17,13 @@ export default Component.extend({
         ctx.arc(x, y, radius, 0, Math.PI * 2, false);
         ctx.closePath();
         ctx.fill();
-        },
+    },
+    keyboardShortcuts: {
+        up: function(){console.log("up");},
+        down: function(){console.log("down");},
+        left: function(){console.log("left");},
+        right: function(){console.log("right");},
+    },
 });
 
 
