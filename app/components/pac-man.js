@@ -9,6 +9,9 @@ export default Component.extend(KeyboardShortCuts, {
     x: 1,
     y: 2,
     squareSize: 40,
+    isMoving: false,
+    direction: 'down',
+    intent: 'down',
     screenWidth: computed(function(){
         return this.get('grid.firstObject.length');
     }),
@@ -34,22 +37,25 @@ export default Component.extend(KeyboardShortCuts, {
         };
         this.keyboardShortcuts = {
             up: function(){
-                this.movePacman('up');
+                console.log('up');
+                this.set('intent','up');
             },
             down: function(){
-                this.movePacman('down');
+                console.log('down');
+                this.set('intent','down');
             },
             left: function(){
-                this.movePacman('left');
+                console.log('left');
+                this.set('intent','left');
             },
             right: function(){
-                this.movePacman('right');
+                console.log('right');
+                this.set('intent','right');
             },
         };
     },
     didInsertElement: function(){
-        this.drawGrid();
-        this.drawPac();
+        this.movementLoop();
     },
     ctx: computed(function(){
         let canvas = document.getElementById("myCanvas");
@@ -67,9 +73,9 @@ export default Component.extend(KeyboardShortCuts, {
             squareSize
         );
     },
-    drawPellet(x, y){
+    drawPellet: function(x, y){
         let radiusDivisor = 6;
-        this.drawCircle(x, y, radiusDivisor);
+        this.drawCircle(x, y, radiusDivisor, 'stopped');
 
 
     },
@@ -92,14 +98,14 @@ export default Component.extend(KeyboardShortCuts, {
         let y = this.get('y');
         let radiusDivisor = 2;
 
-        this.drawCircle(x, y, radiusDivisor);
+        this.drawCircle(x, y, radiusDivisor, this.get('direction'));
     },
-    drawCircle: function(x, y, radiusDivisor){
+    drawCircle: function(x, y, radiusDivisor, direction){
         let ctx = this.get('ctx');
         let squareSize = this.get('squareSize');
 
-        let pixelX = (x + 1/2) * squareSize;
-        let pixelY = (y + 1/2) * squareSize;
+        let pixelX = (x + 1/2 + this.offsetFor('x', direction)) * squareSize;
+        let pixelY = (y + 1/2 + this.offsetFor('y', direction)) * squareSize;
 
         ctx.fillStyle = "#000";
         ctx.beginPath();
@@ -107,8 +113,10 @@ export default Component.extend(KeyboardShortCuts, {
         ctx.closePath();
         ctx.fill();
     },
-    
-    
+    offsetFor : function(coordinate, direction){
+        let frameRatio = this.get('frameCycle') / this.get('framesPerMovement');
+        return this.get('directions')[direction][coordinate]* frameRatio;
+    }, 
     screenPixelWidth: computed(function(){
         return this.get('screenWidth') * this.get('squareSize');
     }),
@@ -155,7 +163,6 @@ export default Component.extend(KeyboardShortCuts, {
     },
     pathBlockedInDirection: function(direction){
         let cellTypeInDirection = this.cellTypeInDirection(direction);
-        console.log(cellTypeInDirection);
         return Ember.isEmpty(cellTypeInDirection) || cellTypeInDirection == 1;
     },
     cellTypeInDirection: function(direction){
@@ -164,19 +171,36 @@ export default Component.extend(KeyboardShortCuts, {
 
         return this.get('grid')[nextY][nextX];
     },
-    movePacman: function(direction){
-        
-        if(!this.pathBlockedInDirection(direction)){
+    frameCycle: 1,
+    framesPerMovement: 30,
+    movementLoop: function(){
+        if(this.get('frameCycle') == this.get('framesPerMovement')){
+            let direction = this.get('direction')
             this.set('x', this.nextCoordinate('x', direction));
             this.set('y', this.nextCoordinate('y', direction));
+            
+            this.set('frameCycle', 1);
+            this.processAnyPellets();
+            this.changePacDirection();
+        } else if(this.get('direction') == 'stopped'){
+            this.changePacDirection();
+        } else {
+            this.incrementProperty('frameCycle');
         }
 
-        this.processAnyPellets();
+            this.clearScreen();
+            this.drawGrid();
+            this.drawPac();
 
-
-        this.clearScreen();
-        this.drawGrid();
-        this.drawPac();
+            Ember.run.later(this, this.movementLoop, 1000/60);
+    },
+    changePacDirection(){
+        let intent = this.get('intent');
+        if(this.pathBlockedInDirection(intent)){
+            this.set('direction', 'stopped');
+        } else {
+            this.set('direction', intent);
+        }
     },
     levelComplete: function(){
         let hasPelletsLeft = false;
