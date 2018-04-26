@@ -151,7 +151,7 @@ export default Component.extend(KeyboardShortCuts, {
         }
     },
     nextCoordinate: function(coordinate, direction){
-        return this.get(coordinate) + this.get('directions.${direction}.${coordinate}');
+        return this.get(coordinate) + this.get('directions')[direction][coordinate];
     },
     pathBlockedInDirection: function(direction){
         let cellTypeInDirection = this.cellTypeInDirection(direction);
@@ -162,7 +162,7 @@ export default Component.extend(KeyboardShortCuts, {
         let nextX = this.nextCoordinate('x', direction);
         let nextY = this.nextCoordinate('y', direction);
 
-        return this.get('grid.${nextY}.${nextX}')
+        return this.get('grid')[nextY][nextX];
     },
     movePacman: function(direction){
         
