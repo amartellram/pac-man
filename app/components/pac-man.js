@@ -1,8 +1,11 @@
 import { computed } from '@ember/object';
 import Component from '@ember/component';
 import KeyboardShortCuts from 'ember-keyboard-shortcuts/mixins/component';
+import embeddedRecordsMixin from 'ember-data/serializers/embedded-records-mixin';
 
 export default Component.extend(KeyboardShortCuts, {
+    levelNumber : 1,
+    score: 0,
     x: 1,
     y: 2,
     squareSize: 40,
@@ -22,18 +25,25 @@ export default Component.extend(KeyboardShortCuts, {
             [2, 2, 2, 2, 2, 2, 2, 1],
             [1, 2, 2, 2, 2, 2, 2, 1],
         ];
+        this.directions = {
+            'up': {x:0, y:-1},
+            'down': {x:0, y:1},
+            'left': {x:-1, y:0},
+            'right': {x:1, y:0},
+            'stopped': {x:0, y:0} 
+        };
         this.keyboardShortcuts = {
             up: function(){
-                this.movePacman('y', -1);
+                this.movePacman('up');
             },
             down: function(){
-                this.movePacman('y',1);
+                this.movePacman('down');
             },
             left: function(){
-                this.movePacman('x', -1);
+                this.movePacman('left');
             },
             right: function(){
-                this.movePacman('x',1);
+                this.movePacman('right');
             },
         };
     },
@@ -132,13 +142,33 @@ export default Component.extend(KeyboardShortCuts, {
         let grid = this.get('grid');
         if(grid[y][x] == 2){
             grid[y][x] = 0;
+            this.incrementProperty('score');
+
+            if(this.levelComplete()){
+                this.incrementProperty('levelNumber');
+                this.restartLevel();
+            }
         }
     },
-    movePacman: function(direction, amount){
-        this.incrementProperty(direction, amount);
+    nextCoordinate: function(coordinate, direction){
+        return this.get(coordinate) + this.get('directions.${direction}.${coordinate}');
+    },
+    pathBlockedInDirection: function(direction){
+        let cellTypeInDirection = this.cellTypeInDirection(direction);
+        console.log(cellTypeInDirection);
+        return Ember.isEmpty(cellTypeInDirection) || cellTypeInDirection == 1;
+    },
+    cellTypeInDirection: function(direction){
+        let nextX = this.nextCoordinate('x', direction);
+        let nextY = this.nextCoordinate('y', direction);
 
-        if(this.collidedWithBorder() || this.collideWithWall()){
-            this.decrementProperty(direction, amount);
+        return this.get('grid.${nextY}.${nextX}')
+    },
+    movePacman: function(direction){
+        
+        if(!this.pathBlockedInDirection(direction)){
+            this.set('x', this.nextCoordinate('x', direction));
+            this.set('y', this.nextCoordinate('y', direction));
         }
 
         this.processAnyPellets();
@@ -148,6 +178,33 @@ export default Component.extend(KeyboardShortCuts, {
         this.drawGrid();
         this.drawPac();
     },
+    levelComplete: function(){
+        let hasPelletsLeft = false;
+        let grid = this.get('grid');
+
+        grid.forEach((row)=>{
+            row.forEach((cell)=>{
+                if(cell ==2){
+                    hasPelletsLeft = true;
+                }
+
+            });
+        });
+        return !hasPelletsLeft;
+    },
+    restartLevel: function(){
+        this.set('x', 0);
+        this.set('y', 0);
+
+        let grid = this.get('grid');
+    grid.forEach((row, rowIndex)=>{
+        row.forEach((cell, columnIndex)=>{
+            if(cell == 0){
+                grid[rowIndex][columnIndex] = 2;
+            }
+        });
+    });
+    }
 });
 
 
