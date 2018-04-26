@@ -18,6 +18,10 @@ You will need the following things properly installed on your computer.
 * `cd pac-man`
 * `npm install`
 
+##(Ember Installation) - optional
+* `npm install -g ember`
+* `ember install ember-keyboard-shortcuts`
+
 ## Running / Development
 
 * `ember serve`
